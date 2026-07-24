@@ -1,0 +1,53 @@
+services:
+  findfish:
+    image: ghcr.io/666ghj/bettafish:latest
+    # Speed up mirror
+    # image: ghcr.nju.edu.cn/666ghj/bettafish:latest
+    container_name: findfish
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STREAMLIT_SERVER_ENABLE_FILE_WATCHER=false
+    ports:
+      - "5050:5000"
+      - "8501:8501"
+      - "8502:8502"
+      - "8503:8503"
+    volumes:
+      - ./app.py:/app/app.py
+      - ./templates:/app/templates
+      - ./SingleEngineApp:/app/SingleEngineApp
+      - ./QueryEngine:/app/QueryEngine
+      - ./MediaEngine:/app/MediaEngine
+      - ./InsightEngine:/app/InsightEngine
+      - ./ReportEngine:/app/ReportEngine
+      - ./utils:/app/utils
+      - ./logs:/app/logs
+      - ./final_reports:/app/final_reports
+      - ./.env:/app/.env  
+      - ./insight_engine_streamlit_reports:/app/insight_engine_streamlit_reports
+      - ./media_engine_streamlit_reports:/app/media_engine_streamlit_reports
+      - ./query_engine_streamlit_reports:/app/query_engine_streamlit_reports
+
+  db:
+    image: postgres:15
+    container_name: findfish-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER:-fish}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fish}
+      POSTGRES_DB: ${DB_NAME:-fish}
+    ports:
+      - "${POSTGRES_PORT:-5444}:5432"
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fish} -d ${DB_NAME:-fish}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
